@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 
 import './styles.css';
+import { useEffect, useState } from "react";
+import { CategoriesServiceApi } from "../../api/CategoiesService.api";
 
 const menuItems = [
     { id: 1, text: 'Books', link: '/#' },
@@ -11,12 +13,24 @@ const menuItems = [
 ];
 
 export const ItemsMenu = () => {
+    const [categories, setCategories] = useState([]);
+
+    useEffect(() => {
+       new CategoriesServiceApi()
+         .getCategories()
+         .then(setCategories);
+    }, []);
+
     return (
         <div className='menu-items'>
             {
-                menuItems.map(({ id, text, link }) => (
+                categories.map(({ type, label }) => (
                     <div className='menu-item'>
-                        <Link key={id} to={link} >{text}</Link>
+                        <Link
+                          key={type}
+                          to={`/categories/${type}?n=${label}`}
+                          className="link"
+                        >{label}</Link>
                     </div>
                 ))
             }

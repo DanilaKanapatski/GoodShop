@@ -3,10 +3,10 @@ const RULES_MESSAGES = {
 	name: '',
 	surname: '',
 	email: 'Use correct email',
-	password: '',
-	passwordConfirm: '',
+	min: (num) => `More than ${num} symbols`,
+	max: (num) => `Less than ${num} symbols`,
 	gender: '',
-	lovedCategories: '',
+	interests: 'Choose minimum 2 interests',
 	bornAt: '',
 };
 

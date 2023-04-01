@@ -6,10 +6,7 @@ export class Api {
 	get(route) {
 		return fetch(this.#prefix + route).then(resp => {
 			if (resp.ok) return resp.json();
-		}).catch((err) => {
-			return {
-				error: err.message,
-			};
+			else throw new Error(resp._bodyText);
 		});
 	}
 
@@ -22,10 +19,7 @@ export class Api {
 			},
 		}).then(resp => {
 			if (resp.ok) return resp.json();
-		}).catch((err) => {
-			return {
-				error: err.message,
-			};
+			else throw new Error(resp._bodyText);
 		});
 	}
 

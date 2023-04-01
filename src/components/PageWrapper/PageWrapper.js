@@ -2,7 +2,7 @@ import { MainHeader } from "../MainHeader";
 import { MainFooter } from "../MainFooter";
 import { Container } from "@mui/material";
 
-const PageWrapper = ({ children }) => {
+export const PageWrapper = ({ children }) => {
 	return (
 		<>
 			<MainHeader />
