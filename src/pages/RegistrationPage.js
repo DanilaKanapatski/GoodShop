@@ -2,10 +2,14 @@ import {
 	Avatar,
 	Box,
 	Button,
-	Checkbox,
+	Checkbox, CircularProgress,
 	Container,
-	FormControlLabel, FormLabel,
-	Grid, Radio, RadioGroup, Switch,
+	FormControlLabel, FormHelperText,
+	FormLabel,
+	Grid,
+	Radio,
+	RadioGroup,
+	Switch,
 	TextField,
 	Typography
 } from "@mui/material";
@@ -14,22 +18,43 @@ import { useEffect, useState } from "react";
 import { DatePicker } from "@mui/x-date-pickers";
 import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router";
-import { useForm, Controller } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { RegistrationSchema } from "../validation/schemas";
 import { CategoriesServiceApi } from "../api/CategoiesService.api";
+import RULES_MESSAGES from "../validation/messages";
+import { useDispatch, useSelector } from "react-redux";
+import AuthSlice from '../store/slices/auth';
+import { useSnackbar } from "notistack";
+import { registerUser } from "../store/actions-creators/auth.actions";
+import { ApiButton } from "../components/ApiButton";
+import dayjs from "dayjs";
+import { Loader } from "../components";
 
 const RegistrationPage = () => {
 	const navigate = useNavigate();
+	const dispatch = useDispatch();
+	const { enqueueSnackbar } = useSnackbar();
+	const authState = useSelector((state) => state.auth);
+	const [categoriesLoading, setCategoriesLoading] = useState(true);
 	const [checkedCategories, setCheckedCategories] = useState([]);
 	const [isSecretQuestionTypeChosen, setIsSecretQuestionTypeChosen] = useState(false);
 
-	const { register, handleSubmit, watch, formState: { errors }, control } = useForm({
+	const {
+		register,
+		handleSubmit,
+		watch,
+		formState: { errors, submitCount },
+		clearErrors,
+		setValue,
+		setError,
+		control,
+	} = useForm({
 		resolver: yupResolver(RegistrationSchema),
 		defaultValues: {
 			name: '',
 			surname: '',
-			email: '',
+			login: '',
 			password: '',
 			bornAt: '',
 			isSubscribed: true,
@@ -40,11 +65,22 @@ const RegistrationPage = () => {
 			},
 		}
 	});
-	console.log(watch());
+
+	useEffect(() => {
+		if (authState.error) {
+			enqueueSnackbar(authState.error, { variant: 'error' });
+			dispatch(AuthSlice.actions.clearError());
+		} else if (!authState.error && submitCount && !authState.isLoading) {
+			enqueueSnackbar('Successfully registered', { variant: 'success' });
+			navigate('/login');
+		}
+	}, [authState.isLoading]);
 
 	useEffect(() => {
 		if (checkedCategories.length) return;
-		new CategoriesServiceApi().getCategories()
+		setCategoriesLoading(true);
+		new CategoriesServiceApi()
+			.getCategories()
 			.then((categories) => {
 				setCheckedCategories(categories.map((item) => {
 					return {
@@ -52,15 +88,38 @@ const RegistrationPage = () => {
 						checked: false,
 					};
 				}));
+				setCategoriesLoading(false);
+			})
+			.catch(() => {
+				setCategoriesLoading(false);
 			});
 	}, []);
 
 	function submitHandler(values) {
-		console.log(values);
+		const data = { ...values };
+		if (values.secret.type.trim()) {
+			data.secret = values.secret;
+		} else delete data.secret;
+
+		Object.keys(data).forEach((key) => {
+			if (typeof data[key] === "string" && !data[key].trim()) {
+				delete data[key];
+			}
+		});
+
+		dispatch(registerUser(data));
 	}
 
 	function goBackMainPage() {
 		navigate('/');
+	}
+
+	if (submitCount) {
+		if (!!errors.interests && watch().interests.length >= 2) {
+			clearErrors('interests');
+		} else if (!errors.interests && watch().interests.length < 2) {
+			setError('interests', { message: RULES_MESSAGES.interests });
+		}
 	}
 
 	const categoriesBoxes = (
@@ -68,7 +127,23 @@ const RegistrationPage = () => {
 			{
 				checkedCategories.map((category) =>
 					<FormControlLabel
-						control={<Checkbox checked={category.checked} onChange={() => {}} />}
+						control={
+							<Checkbox
+								checked={category.checked}
+								onChange={(event) => {
+									setCheckedCategories((prev) => {
+										const index = prev.findIndex((item) => item.id === category.id);
+										prev[index].checked = !prev[index].checked;
+										setValue('interests', prev.filter((item) => item.checked));
+										return [
+											...prev.slice(0, index),
+											prev[index],
+											...prev.slice(index + 1, prev.length),
+										];
+									});
+								}}
+							/>
+						}
 						label={category.label}
 						key={category.id}
 					/>
@@ -76,6 +151,42 @@ const RegistrationPage = () => {
 			}
 		</Box>
 	);
+
+	const interestsBlock = <>
+		<FormControlLabel
+			label="All"
+			sx={{ display: 'block' }}
+			control={
+				<Checkbox
+					checked={checkedCategories.filter((item) => !!item.checked).length === checkedCategories.length}
+					indeterminate={!!checkedCategories.find((item) => !!item.checked) && !(checkedCategories.filter((item) => !!item.checked).length === checkedCategories.length)}
+					onChange={(event) => {
+						setCheckedCategories((prev) => {
+							if (!!checkedCategories.find((item) => !!item.checked)) {
+								setValue('interests', []);
+								return prev.map((item) => {
+									return {
+										...item,
+										checked: false,
+									};
+								});
+							}
+							const newValue = prev.map((item) => {
+								return {
+									...item,
+									checked: !item.checked,
+								};
+							});
+							setValue('interests', newValue);
+							return newValue;
+						});
+					}}
+				/>
+			}
+		/>
+		{categoriesBoxes}
+		<FormHelperText error={!!errors.interests}>{errors.interests ? errors.interests.message : ''}</FormHelperText>
+	</>;
 
 	return (
 		<Container
@@ -96,7 +207,7 @@ const RegistrationPage = () => {
 				}}
 			>
 				<Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-					<LockOutlinedIcon />
+					<LockOutlinedIcon/>
 				</Avatar>
 				<Typography component="h1" variant="h5">
 					Sign up
@@ -134,7 +245,7 @@ const RegistrationPage = () => {
 								autoComplete="email"
 								error={!!errors.email}
 								helperText={errors.email ? errors.email.message : ''}
-								{...register('email')}
+								{...register('login')}
 							/>
 						</Grid>
 						<Grid item xs={12}>
@@ -153,49 +264,48 @@ const RegistrationPage = () => {
 							<Controller
 								name="bornAt"
 								control={control}
-								render={({ field: { onChange, ...restField } }) => (
+								render={({ field: { onChange, onBlur, name, ref } }) => (
 									<DatePicker
+										disableFuture
 										label="Date of birth"
-										format="DD/MM/YYYY"
 										sx={{ width: '100%' }}
+										format="DD/MM/YYYY"
 										onChange={(event) => onChange(event.toString())}
-										{...restField}
+										onBlur={onBlur}
+										name={name}
+										ref={ref}
+										minDate={dayjs('Jan 01 1930 01:00:00 GMT+0300')}
+										slotProps={{
+											textField: {
+												helperText: errors.bornAt ? errors.bornAt.message : '',
+												error: !!errors.bornAt,
+											},
+										}}
 									/>
 								)}
 							/>
 						</Grid>
 						<Grid item xs={12}>
 							<FormLabel>Gender</FormLabel>
-							<Controller
-								name="gender"
-								control={control}
-								render={({ field }) => (
-									<RadioGroup row {...field} >
-										<FormControlLabel value="male" control={<Radio />} label="Male" />
-										<FormControlLabel value="female" control={<Radio />} label="Female" />
-										<FormControlLabel value="other" control={<Radio />} label="Other" />
-									</RadioGroup>
-								)}
-							/>
+							<RadioGroup row {...register('gender')}>
+								<FormControlLabel value="male" control={<Radio/>} label="Male"/>
+								<FormControlLabel value="female" control={<Radio/>} label="Female"/>
+								<FormControlLabel value="other" control={<Radio/>} label="Other"/>
+							</RadioGroup>
+						</Grid>
+						<Grid item xs={12}>
+							<FormLabel error={!!errors.interests}>Interests</FormLabel>
+							{categoriesLoading
+								? <div style={{ marginTop: '5px', marginLeft: '5px' }}>
+										<CircularProgress color="inherit" size={30} />
+									</div>
+								: interestsBlock}
 						</Grid>
 						<Grid item xs={12}>
 							<FormControlLabel
-								label="Parent"
-								control={
-									<Checkbox
-										checked={checkedCategories[0] && checkedCategories[1]}
-										indeterminate={checkedCategories[0] !== checkedCategories[1]}
-										onChange={() => {}}
-									/>
-								}
-							/>
-							{categoriesBoxes}
-						</Grid>
-						<Grid item xs={12}>
-							<FormControlLabel
-								control={<Switch defaultChecked />}
+								control={<Switch defaultChecked/>}
 								label="I want to receive inspiration, marketing promotions and updates via email"
-								{...register('isSubscribe')}
+								{...register('isSubscribed')}
 							/>
 						</Grid>
 						<Grid item xs={12}>
@@ -210,6 +320,7 @@ const RegistrationPage = () => {
 										setIsSecretQuestionTypeChosen(true);
 									} else if (isSecretQuestionTypeChosen && !event.target.value.trim()) {
 										setIsSecretQuestionTypeChosen(false);
+										setValue('secret.answer', '');
 									}
 								}}
 								{...register('secret.type')}
@@ -241,14 +352,15 @@ const RegistrationPage = () => {
 						>
 							Cancel
 						</Button>
-						<Button
+						<ApiButton
 							color="secondary"
 							type="submit"
 							variant="contained"
 							sx={{ mt: 3, mb: 2 }}
+							loading={authState.isLoading}
 						>
 							Sign Up
-						</Button>
+						</ApiButton>
 					</Grid>
 					<Grid container justifyContent="flex-end">
 						<Grid item>

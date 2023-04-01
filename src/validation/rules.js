@@ -4,10 +4,10 @@ import RULES_MESSAGES from "./messages";
 const RULES = {
 	name: string()
 		.required(RULES_MESSAGES.required)
-		.max(20, ''),
+		.min(2, RULES_MESSAGES.min(2))
+		.max(20, RULES_MESSAGES.max(20)),
 
 	surname: string()
-		.required(RULES_MESSAGES.required)
 		.max(20, ''),
 
 	email: string()
@@ -16,21 +16,19 @@ const RULES = {
 
 	password: string()
 		.required(RULES_MESSAGES.required)
-		.min(6, 'More than 6 syms')
-		.max(24, 'Less than 24 syms'),
+		.min(6, RULES_MESSAGES.min(6))
+		.max(24, RULES_MESSAGES.max(24)),
 
-	passwordConfirm: string()
-		.required(),
+	gender: string()
+		.oneOf(['female', 'male', 'other']),
 
-	gender: number(),
+	interests: array()
+		.min(2, RULES_MESSAGES.interests),
 
-	lovedCategories: array()
-		.min(2, ''),
+	isSubscribed: boolean(),
 
-	newsSubscription: boolean(),
-
-	bornAt: date()
-		.required(),
+	bornAt: string()
+		.required(RULES_MESSAGES.required),
 };
 
 export default RULES;

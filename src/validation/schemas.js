@@ -4,13 +4,12 @@ import RULES from './rules';
 const {
 	email,
 	password,
-	lovedCategories,
+	interests,
 	bornAt,
 	name,
 	surname,
 	gender,
-	newsSubscription,
-	passwordConfirm
+	isSubscribed,
 } = RULES;
 
 export const LoginSchema = yup.object().shape({
@@ -19,13 +18,12 @@ export const LoginSchema = yup.object().shape({
 });
 
 export const RegistrationSchema = yup.object().shape({
-	email,
+	login: email,
 	password,
-	lovedCategories,
+	interests,
 	bornAt,
 	name,
 	surname,
 	gender,
-	newsSubscription,
-	passwordConfirm,
+	isSubscribed,
 });

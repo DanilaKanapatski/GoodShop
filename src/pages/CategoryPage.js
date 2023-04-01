@@ -1,11 +1,13 @@
-import { Box, Grid } from "@mui/material";
+import { Box, Breadcrumbs, Grid, Typography } from "@mui/material";
+import { Link, useSearchParams } from 'react-router-dom';
 import { ItemsList, ItemsMenu } from "../components";
 import { useParams } from "react-router";
 
 const CategoryPage = () => {
 	const { categoryType } = useParams();
+	const [query] = useSearchParams();
 
-	console.log(categoryType);
+	const categoryName = query.get('n') || categoryType;
 
 	return (
 		<Grid
@@ -20,6 +22,19 @@ const CategoryPage = () => {
 				<ItemsMenu />
 			</Box>
 			<Box gridColumn="span 10" pr={2} pl={2}>
+				<Breadcrumbs>
+					<Link underline="hover" color="inherit" to="/">
+						Main
+					</Link>
+					<Link
+						underline="hover"
+						color="inherit"
+						to="/categories"
+					>
+						Categories
+					</Link>
+					<Typography color="text.primary">{categoryName}</Typography>
+				</Breadcrumbs>
 				<ItemsList />
 			</Box>
 		</Grid>

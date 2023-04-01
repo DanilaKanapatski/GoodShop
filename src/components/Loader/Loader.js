@@ -2,25 +2,49 @@ import { useState } from "react";
 
 import './styles.css';
 
-export const Loader = ({ initial = false }) => {
-    const [isRunning, setIsRunning] = useState(initial);
+export const Loader = ({ loading = false, variant, style }) => {
+	if (!loading) return <></>;
 
-    if (!isRunning) return <></>;
+	const defaultLoader = 'ring';
 
-    return (
-        <div className="my-loader">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-        </div>
-    );
+	const LinesVariantInner = (
+		<>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+		</>
+	);
+
+	const RingVariantInner = (
+		<>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+		</>
+	);
+
+  const variants = {
+    lines: LinesVariantInner,
+    ring: RingVariantInner,
+    default: LinesVariantInner,
+  };
+
+	return (
+		<div
+			className={variants[variant] ? variant : defaultLoader}
+			style={style}
+		>
+			{ variants[variant] ? variants[variant] : variants.default }
+		</div>
+	);
 };
